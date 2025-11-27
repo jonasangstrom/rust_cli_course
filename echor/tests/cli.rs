@@ -24,22 +24,30 @@ fn runs() -> Result<()> {
     Ok(())
 }
 
-#[test]
-fn hello1() -> Result<()> {
-    let outfile = "tests/expected/hello1.txt";
-    let expected = fs::read_to_string(outfile)?;
+fn run_test_with_file(args: &[&str], expected_file_path: &str) -> Result<()> {
+    let expected = fs::read_to_string(expected_file_path)?;
 
     let mut cmd = cargo::cargo_bin_cmd!("echor");
-    cmd.args(["Hello there"]).assert().success().stdout(expected);
+    cmd.args(args).assert().success().stdout(expected);
     Ok(())
 }
 
 #[test]
-fn hello2() -> Result<()> {
-    let outfile = "tests/expected/hello2.txt";
-    let expected = fs::read_to_string(outfile)?;
+fn hello1() -> Result<()> {
+    run_test_with_file(&["Hello there"], "tests/expected/hello1.txt")
+}
 
-    let mut cmd = cargo::cargo_bin_cmd!("echor");
-    cmd.args(["Hello", "there"]).assert().success().stdout(expected);
-    Ok(())
+#[test]
+fn hello2() -> Result<()> {
+    run_test_with_file(&["Hello", "there"], "tests/expected/hello2.txt")
+}
+
+#[test]
+fn hello2n() -> Result<()> {
+    run_test_with_file(&["Hello", "there", "-n"], "tests/expected/hello2.n.txt")
+}
+
+#[test]
+fn hello1n() -> Result<()> {
+    run_test_with_file(&["Hello there", "-n"], "tests/expected/hello1.n.txt")
 }
