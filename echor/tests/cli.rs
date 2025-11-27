@@ -30,6 +30,16 @@ fn hello1() -> Result<()> {
     let expected = fs::read_to_string(outfile)?;
 
     let mut cmd = cargo::cargo_bin_cmd!("echor");
-    cmd.arg("Hello there").assert().success().stdout(expected);
+    cmd.args(["Hello there"]).assert().success().stdout(expected);
+    Ok(())
+}
+
+#[test]
+fn hello2() -> Result<()> {
+    let outfile = "tests/expected/hello2.txt";
+    let expected = fs::read_to_string(outfile)?;
+
+    let mut cmd = cargo::cargo_bin_cmd!("echor");
+    cmd.args(["Hello", "there"]).assert().success().stdout(expected);
     Ok(())
 }
