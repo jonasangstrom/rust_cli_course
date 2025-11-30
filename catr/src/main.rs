@@ -13,7 +13,10 @@ fn main() {
 
 fn run(args: Args) -> Result<()> {
     for filename in args.files {
-        println!("{filename}");
+        match open(&filename) {
+            Err(err) => eprintln!("Failed to open {filename}: {err}"),
+            Ok(_) => println!("Opened {filename}"),
+        }
     }
     Ok(())
 }
@@ -32,4 +35,11 @@ struct Args {
     number_lines: bool,
     #[arg(short('b'), long("number-nonblank"))]
     number_nonblank_lines: bool,
+}
+
+fn open(filename: &str) -> Result<Box<dyn BufRead>> {
+    match filename {
+        "-" => Ok(Box::new(BufReader::new(io::stdin()))),
+        _ => Ok(Box::new(BufReader::new(File::open(filename)?))),
+    }
 }
