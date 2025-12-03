@@ -3,7 +3,7 @@ use anyhow::Result;
 
 use assert_cmd::cargo;
 // use pretty_assertions::assert_eq;
-// use predicates::prelude::predicate;
+use predicates::prelude::predicate;
 
 
 fn run_test_with_file(args: &[&str], expected_file_path: &str) -> Result<()> {
@@ -11,6 +11,17 @@ fn run_test_with_file(args: &[&str], expected_file_path: &str) -> Result<()> {
 
     let mut cmd = cargo::cargo_bin_cmd!("catr");
     cmd.args(args).assert().success().stdout(expected);
+    Ok(())
+}
+
+#[test]
+// Unlike the real cat this should not fail if file does not exist according
+// to my understanding of the book.
+fn dies_non_existing_file() -> Result<()> {
+    let mut cmd = cargo::cargo_bin_cmd!("catr");
+    cmd.args(["non_exissting.txt"]).assert()
+        .success()
+        .stderr(predicate::str::contains("Failed to open"));
     Ok(())
 }
 
