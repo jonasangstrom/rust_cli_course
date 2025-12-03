@@ -22,11 +22,12 @@ fn run(args: Args) -> Result<()> {
     else {
         line_numbering = LineNumbering::No;
     }
+    let mut line_number = 1;
     
     for filename in args.files {
         match open(&filename) {
             Err(err) => eprintln!("Failed to open {filename}: {err}"),
-            Ok(buffer_box) => print_to_stout(buffer_box, &line_numbering),
+            Ok(buffer_box) => line_number = print_to_stout(buffer_box, &line_numbering, &line_number),
         }
     }
     Ok(())
@@ -38,14 +39,15 @@ enum LineNumbering {
     No
 }
 
-fn print_to_stout(buffer_box: Box<dyn BufRead>, line_numbering: &LineNumbering) {
-    let mut line_number = 1;
+fn print_to_stout(buffer_box: Box<dyn BufRead>, line_numbering: &LineNumbering, line_number: &i32) -> i32 {
+    let mut new_line_number: i32 = *line_number;
     for line_result  in buffer_box.lines() {
         match line_result {
             Err(err) => eprintln!("Failed to read line {err}"),
-            Ok(line) => line_number = print_line(line, &line_number, &line_numbering),
+            Ok(line) => new_line_number = print_line(line, &new_line_number, &line_numbering),
         }
     }
+    new_line_number
 }
 
 fn print_line(line: String, line_number: &i32, line_numbering: &LineNumbering) -> i32 {
