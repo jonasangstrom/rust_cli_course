@@ -6,11 +6,21 @@ use anyhow::Result;
 fn main() {
     let args = Args::parse();
     let number_of_lines = args.lines;
-    for filename in args.files {
+    let filenames = args.files;
+    let print_filename = match filenames.len()
+    {
+        1 => false,
+        _ => true,
+    };
+    for filename in filenames {
+        if print_filename
+        {
+            println!("==> {filename} <==\n");
+        }
         let buffer = open(&filename);
         match buffer {
             Err(err) => eprintln!("Failed to read file {err}"),
-            Ok(file) => print_to_stout(file, number_of_lines as usize),
+            Ok(file) => print_to_stout( file, number_of_lines as usize),
         }
     }
 }
@@ -23,6 +33,7 @@ fn open(filename: &str) -> Result<Box<dyn BufRead>> {
 }
 
 fn print_to_stout(buffer_box: Box<dyn BufRead>, number_of_lines: usize) {
+
     for (line_number, line_result)  in buffer_box.lines().enumerate() {
         match line_result {
             Err(err) => eprintln!("Failed to read line {err}"),
