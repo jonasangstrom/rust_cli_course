@@ -4,12 +4,16 @@ use std::io::{self, BufRead, BufReader};
 use anyhow::Result;
 
 fn main() {
-    run().unwrap();
+    let args = Args::parse();
+    if let Err(e) = run(args) {
+        eprintln!("{e}");
+        std::process::exit(1);
+    }
 }
 
-fn run() -> Result<()> {
-    let args = Args::parse();
+fn run(args: Args) -> Result<()> {
     let number_of_lines = args.lines as usize;
+    let number_of_bytes_option = args.bytes;
     let filenames = args.files;
     let n_files = filenames.len();
     let print_filename = match filenames.len()
@@ -17,16 +21,28 @@ fn run() -> Result<()> {
         1 => false,
         _ => true,
     };
+    let print_file_to_stout  = match number_of_bytes_option {
+        Some(_) => print_file_to_stout_bytes,
+        None => print_file_to_stout_lines,
+    };
+
+    let numbet_of_things  = match number_of_bytes_option {
+        Some(number_of_bytes) => number_of_bytes as usize,
+        None => number_of_lines
+    };
+
     for (n_file, filename) in filenames.iter().enumerate(){
         if print_filename
         {
             print!("==> {filename} <==\n");
         }
-        let buffer = open(&filename);
-        match buffer {
-            Err(err) => eprintln!("Failed to read file {err}"),
-            Ok(file) => print_file_to_stout_lines( file, &number_of_lines)?,
+        match open(&filename) {
+            Err(err) => {
+                eprintln!("{filename}: {err}");
+            },
+            Ok(file) => print_file_to_stout( file, &numbet_of_things)?,
         }
+        
         let last_file = (n_file + 1) != n_files;
         if print_filename & last_file
         {
@@ -44,6 +60,7 @@ fn open(filename: &str) -> Result<Box<dyn BufRead>> {
     }
 }
 
+
 fn print_file_to_stout_lines(mut file: Box<dyn BufRead>, number_of_lines: &usize) -> Result<()> {
     let mut line =  String::new();
     for _line_number in 0..*number_of_lines {
@@ -56,6 +73,14 @@ fn print_file_to_stout_lines(mut file: Box<dyn BufRead>, number_of_lines: &usize
     }
     Ok(())
 }
+
+fn print_file_to_stout_bytes(mut file: Box<dyn BufRead>, number_of_bytes: &usize) -> Result<()> {
+    let mut buffer = vec![0; *number_of_bytes];
+    let bytes_read = file.read(&mut buffer)?;
+    let output = String::from_utf8_lossy(&buffer[..bytes_read]);
+    print!("{output}");
+    Ok(())
+    }
 
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
