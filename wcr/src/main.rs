@@ -1,7 +1,23 @@
 use clap::Parser;
+use std::io::{self, BufRead, BufReader};
+use anyhow::Result;
+
 fn main() {
-    let args = Args::parse();
+    let mut args = Args::parse();
+    // this is to make it behave like wc default
+    if [args.words, args.bytes, args.chars, args.lines].iter().all(|v| v == &false) {
+        args.words = true;
+        args.chars = true;
+        args.bytes = true;
+    }
     println!("{args:?}");
+}
+
+fn open(filename: &String) -> Result<Box<dyn BufRead>> {
+    match filename {
+        "-" => Ok(Box::new(BufReader::new(io::stdin()))),
+        _ => Ok(Box::new(File::open(filename)?))
+    }
 }
 
 #[derive(Debug, Parser)]
