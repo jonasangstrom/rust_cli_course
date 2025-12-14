@@ -84,7 +84,7 @@ fn print_file_to_stout_bytes(mut file: Box<dyn BufRead>, number_of_bytes: &usize
 
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
-/// "Rust version of head"
+/// "Rust version of wc"
 struct Args {
     #[arg(
         value_name ="FILE",
