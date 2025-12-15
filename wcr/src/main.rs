@@ -23,7 +23,10 @@ fn main() {
 
 fn run(args: Args) -> Result<()> {
     for filename in args.files {
-        let _buffer = open(&filename)?;
+        let buffer = open(&filename)?;
+        let counts = count_things(buffer)?;
+        let result_line = make_result_line(counts, &filename);
+        println!("{result_line}");
     }
     Ok(())
 }
@@ -43,7 +46,7 @@ fn make_result_line(counts: Counts, filename: &str) -> String {
         format_field(counts.bytes_or_chars),
         match filename {
             "-" => "".to_string(),
-            name => name.to_string(),
+            name => format!(" {name}"),
         }
     )
 }
