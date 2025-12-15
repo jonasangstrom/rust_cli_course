@@ -10,11 +10,80 @@ fn main() {
         .iter()
         .all(|v| v == &false)
     {
+        args.lines = true;
         args.words = true;
-        args.chars = true;
         args.bytes = true;
     }
-    println!("{args:?}");
+
+    if let Err(err) = run(args) {
+        eprintln!("{err}");
+        std::process::exit(1);
+    };
+}
+
+fn run(args: Args) -> Result<()> {
+    for filename in args.files {
+        let _buffer = open(&filename)?;
+    }
+    Ok(())
+}
+
+#[derive(Debug)]
+struct Counts {
+    words: Option<u32>,
+    lines: Option<u32>,
+    bytes_or_chars: Option<u32>,
+}
+
+fn make_result_line(counts: Counts, filename: &str) -> String {
+    format!(
+        "{}{}{}{}",
+        format_field(counts.words),
+        format_field(counts.lines),
+        format_field(counts.bytes_or_chars),
+        match filename {
+            "-" => "".to_string(),
+            name => name.to_string(),
+        }
+    )
+}
+
+fn format_field(optional_value: Option<u32>) -> String {
+    match optional_value {
+        Some(value) => format!("{value:>8}"),
+        None => "".to_string(),
+    }
+}
+
+fn count_things(buffer: Box<dyn BufRead>) -> Result<Counts> {
+    let mut line_count: u32 = 0;
+    let mut char_count: u32 = 0;
+    let mut words_count: u32 = 0;
+    let mut in_word: bool;
+    for possible_line in buffer.lines() {
+        let line = possible_line?;
+        in_word = false;
+        for char in line.chars() {
+            char_count += 1;
+            if char.is_whitespace() {
+                if in_word {
+                    words_count += 1;
+                    in_word = false
+                }
+            } else {
+                in_word = true;
+            }
+        }
+        if in_word {
+            words_count += 1;
+        }
+        line_count += 1;
+    }
+    Ok(Counts {
+        words: Some(words_count),
+        lines: Some(line_count),
+        bytes_or_chars: Some(char_count),
+    })
 }
 
 fn open(filename: &str) -> Result<Box<dyn BufRead>> {
