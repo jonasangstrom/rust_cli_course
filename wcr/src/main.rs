@@ -36,16 +36,48 @@ struct Counts {
 }
 
 fn run(args: Args) -> Result<()> {
-    let shall_vount = ShallCount {
+    let shall_count = ShallCount {
         lines: args.lines,
         words: args.words,
         bytes: args.bytes,
         chars: args.chars,
     };
+
+    let mut total_lines = 0;
+    let mut total_words = 0;
+    let mut total_bytes_or_chars = 0;
+    let more_than_one_file = args.files.len() > 1;
     for filename in args.files {
         let buffer = open(&filename)?;
-        let counts = count_things(buffer, &shall_vount)?;
+        let counts = count_things(buffer, &shall_count)?;
+        if let Some(lines) = counts.lines {
+            total_lines += lines;
+        }
+        if let Some(words) = counts.words {
+            total_words += words;
+        }
+        if let Some(bytes_or_chars) = counts.bytes_or_chars {
+            total_bytes_or_chars += bytes_or_chars;
+        }
         let result_line = make_result_line(counts, &filename);
+        println!("{result_line}");
+    }
+    if more_than_one_file {
+        let total_counts = Counts {
+            words: match shall_count.words {
+                true => Some(total_words),
+                false => None,
+            },
+            lines: match shall_count.lines {
+                true => Some(total_lines),
+                false => None,
+            },
+            bytes_or_chars: match shall_count.bytes || shall_count.chars {
+                true => Some(total_bytes_or_chars),
+                false => None,
+            },
+        };
+        let result_line = make_result_line(total_counts, "total");
         println!("{result_line}");
     }
     Ok(())
