@@ -21,14 +21,11 @@ fn main() {
     };
 }
 
-fn run(args: Args) -> Result<()> {
-    for filename in args.files {
-        let buffer = open(&filename)?;
-        let counts = count_things(buffer)?;
-        let result_line = make_result_line(counts, &filename);
-        println!("{result_line}");
-    }
-    Ok(())
+struct ShallCount {
+    lines: bool,
+    words: bool,
+    bytes: bool,
+    chars: bool,
 }
 
 #[derive(Debug)]
@@ -38,11 +35,27 @@ struct Counts {
     bytes_or_chars: Option<u32>,
 }
 
+fn run(args: Args) -> Result<()> {
+    let shall_vount = ShallCount {
+        lines: args.lines,
+        words: args.words,
+        bytes: args.bytes,
+        chars: args.chars,
+    };
+    for filename in args.files {
+        let buffer = open(&filename)?;
+        let counts = count_things(buffer, &shall_vount)?;
+        let result_line = make_result_line(counts, &filename);
+        println!("{result_line}");
+    }
+    Ok(())
+}
+
 fn make_result_line(counts: Counts, filename: &str) -> String {
     format!(
         "{}{}{}{}",
-        format_field(counts.words),
         format_field(counts.lines),
+        format_field(counts.words),
         format_field(counts.bytes_or_chars),
         match filename {
             "-" => "".to_string(),
@@ -58,16 +71,31 @@ fn format_field(optional_value: Option<u32>) -> String {
     }
 }
 
-fn count_things(buffer: Box<dyn BufRead>) -> Result<Counts> {
+fn count_things(mut buffer: Box<dyn BufRead>, shall_count: &ShallCount) -> Result<Counts> {
     let mut line_count: u32 = 0;
-    let mut char_count: u32 = 0;
+    let mut byte_or_char_count: u32 = 0;
     let mut words_count: u32 = 0;
     let mut in_word: bool;
-    for possible_line in buffer.lines() {
-        let line = possible_line?;
+    let mut read = true;
+    let mut line = String::new();
+    while read {
+        let bytes = buffer.read_line(&mut line)?;
+        if bytes == 0 {
+            read = false;
+            continue;
+        }
+        if shall_count.lines {
+            line_count += 1;
+        }
+        if shall_count.bytes {
+            byte_or_char_count += u32::try_from(bytes)?;
+        }
         in_word = false;
+
         for char in line.chars() {
-            char_count += 1;
+            if shall_count.chars {
+                byte_or_char_count += 1;
+            }
             if char.is_whitespace() {
                 if in_word {
                     words_count += 1;
@@ -80,12 +108,21 @@ fn count_things(buffer: Box<dyn BufRead>) -> Result<Counts> {
         if in_word {
             words_count += 1;
         }
-        line_count += 1;
+        line.clear();
     }
     Ok(Counts {
-        words: Some(words_count),
-        lines: Some(line_count),
-        bytes_or_chars: Some(char_count),
+        words: match shall_count.words {
+            true => Some(words_count),
+            false => None,
+        },
+        lines: match shall_count.lines {
+            true => Some(line_count),
+            false => None,
+        },
+        bytes_or_chars: match shall_count.bytes || shall_count.chars {
+            true => Some(byte_or_char_count),
+            false => None,
+        },
     })
 }
 
