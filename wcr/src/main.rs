@@ -48,7 +48,13 @@ fn run(args: Args) -> Result<()> {
     let mut total_bytes_or_chars = 0;
     let more_than_one_file = args.files.len() > 1;
     for filename in args.files {
-        let buffer = open(&filename)?;
+        let buffer = match open(&filename) {
+            Ok(buffer) => buffer,
+            Err(err) => {
+                eprint!("{filename}: ");
+                return Err(err);
+            }
+        };
         let counts = count_things(buffer, &shall_count)?;
         if let Some(lines) = counts.lines {
             total_lines += lines;

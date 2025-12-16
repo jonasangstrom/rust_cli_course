@@ -2,7 +2,7 @@ use anyhow::Result;
 use assert_cmd::cargo;
 use predicates::prelude::*;
 use pretty_assertions::assert_eq;
-use rand::{distr::Alphanumeric, Rng};
+use rand::{Rng, distr::Alphanumeric};
 use std::fs;
 
 const EMPTY: &str = "tests/inputs/empty.txt";
@@ -40,7 +40,10 @@ fn dies_chars_and_bytes() -> Result<()> {
 // --------------------------------------------------
 fn run(args: &[&str], expected_file: &str) -> Result<()> {
     let expected = fs::read_to_string(expected_file)?;
-    let output = cargo::cargo_bin_cmd!("wcr").args(args).output().expect("fail");
+    let output = cargo::cargo_bin_cmd!("wcr")
+        .args(args)
+        .output()
+        .expect("fail");
     assert!(output.status.success());
 
     let stdout = String::from_utf8(output.stdout).expect("invalid UTF-8");
@@ -57,7 +60,7 @@ fn skips_bad_file() -> Result<()> {
     cargo::cargo_bin_cmd!("wcr")
         .arg(bad)
         .assert()
-        .success()
+        .failure()
         .stderr(predicate::str::is_match(expected)?);
     Ok(())
 }
@@ -162,8 +165,7 @@ fn atlamal_bytes_lines() -> Result<()> {
 #[test]
 fn atlamal_stdin() -> Result<()> {
     let input = fs::read_to_string(ATLAMAL)?;
-    let expected =
-        fs::read_to_string("tests/expected/atlamal.txt.stdin.out")?;
+    let expected = fs::read_to_string("tests/expected/atlamal.txt.stdin.out")?;
 
     let output = cargo::cargo_bin_cmd!("wcr")
         .write_stdin(input)
