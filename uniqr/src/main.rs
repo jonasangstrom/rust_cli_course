@@ -39,11 +39,13 @@ fn read_file(mut buffer: Box<dyn BufRead>, print_line_number: bool) -> Result<()
         };
         let bytes = buffer.read_line(&mut line)?;
         if bytes == 0 {
-            write_output(&old_line, &optional_line_number);
+            if !first {
+                write_output(&old_line, &optional_line_number);
+            }
             break;
         }
 
-        if old_line != line {
+        if old_line.trim_end() != line.trim_end() {
             if first {
                 first = false;
             } else {
