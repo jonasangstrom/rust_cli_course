@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, BufWriter, Write};
 
 fn main() {
     let args = Args::parse();
@@ -13,6 +13,8 @@ fn main() {
 
 fn run(args: Args) -> Result<()> {
     let filename = args.in_file;
+
+    let writer = open_writer(args.out_file)?;
     let buffer = match open(&filename) {
         Ok(buffer) => buffer,
         Err(err) => {
@@ -20,11 +22,15 @@ fn run(args: Args) -> Result<()> {
             return Err(err);
         }
     };
-    read_file(buffer, args.count)?;
+    read_file(buffer, writer, args.count)?;
     Ok(())
 }
 
-fn read_file(mut buffer: Box<dyn BufRead>, print_line_number: bool) -> Result<()> {
+fn read_file(
+    mut buffer: Box<dyn BufRead>,
+    mut writer: BufWriter<Box<dyn Write>>,
+    print_line_number: bool,
+) -> Result<()> {
     let mut line = String::new();
     let mut old_line = String::new();
     let mut first = true;
@@ -40,7 +46,7 @@ fn read_file(mut buffer: Box<dyn BufRead>, print_line_number: bool) -> Result<()
         let bytes = buffer.read_line(&mut line)?;
         if bytes == 0 {
             if !first {
-                write_output(&old_line, &optional_line_number);
+                write_output(&old_line, &optional_line_number, &mut writer)?;
             }
             break;
         }
@@ -49,7 +55,7 @@ fn read_file(mut buffer: Box<dyn BufRead>, print_line_number: bool) -> Result<()
             if first {
                 first = false;
             } else {
-                write_output(&old_line, &optional_line_number);
+                write_output(&old_line, &optional_line_number, &mut writer)?;
             }
             old_line = format!("{line}");
             optional_line_number = match optional_line_number {
@@ -63,11 +69,26 @@ fn read_file(mut buffer: Box<dyn BufRead>, print_line_number: bool) -> Result<()
     Ok(())
 }
 
-fn write_output(line: &String, optional_line_number: &Option<i32>) {
-    match optional_line_number {
-        Some(line_number) => print!("{line_number:>4} {line}"),
-        None => print!("{line}"),
+fn open_writer(possible_path: Option<String>) -> Result<BufWriter<Box<dyn Write>>> {
+    let writer: Box<dyn Write> = match possible_path {
+        Some(path) => Box::new(File::create(path)?),
+        None => Box::new(io::stdout()),
     };
+
+    Ok(BufWriter::new(writer))
+}
+
+fn write_output(
+    line: &String,
+    optional_line_number: &Option<i32>,
+    writer: &mut BufWriter<Box<dyn Write>>,
+) -> Result<()> {
+    match optional_line_number {
+        Some(line_number) => write!(writer, "{line_number:>4} {line}")?,
+        None => write!(writer, "{line}")?,
+    };
+    writer.flush()?;
+    Ok(())
 }
 
 #[derive(Parser, Debug)]
