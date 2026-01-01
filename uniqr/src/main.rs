@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, BufWriter, Write};
+use std::io::{self, BufRead, BufReader, Write};
 
 fn main() {
     let args = Args::parse();
@@ -28,7 +28,7 @@ fn run(args: Args) -> Result<()> {
 
 fn read_file(
     mut buffer: Box<dyn BufRead>,
-    mut writer: BufWriter<Box<dyn Write>>,
+    mut writer: Box<dyn Write>,
     print_line_number: bool,
 ) -> Result<()> {
     let mut line = String::new();
@@ -69,19 +69,19 @@ fn read_file(
     Ok(())
 }
 
-fn open_writer(possible_path: Option<String>) -> Result<BufWriter<Box<dyn Write>>> {
+fn open_writer(possible_path: Option<String>) -> Result<Box<dyn Write>> {
     let writer: Box<dyn Write> = match possible_path {
         Some(path) => Box::new(File::create(path)?),
         None => Box::new(io::stdout()),
     };
 
-    Ok(BufWriter::new(writer))
+    Ok(writer)
 }
 
 fn write_output(
     line: &String,
     optional_line_number: &Option<i32>,
-    writer: &mut BufWriter<Box<dyn Write>>,
+    writer: &mut Box<dyn Write>,
 ) -> Result<()> {
     match optional_line_number {
         Some(line_number) => write!(writer, "{line_number:>4} {line}")?,
