@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::builder::PossibleValue;
 use clap::{ArgAction, Parser, ValueEnum};
 use regex::Regex;
+use walkdir::WalkDir;
 
 fn main() {
     let args = Args::parse();
@@ -12,7 +13,20 @@ fn main() {
 }
 
 fn run(args: Args) -> Result<()> {
-    println!("{args:#?}");
+    get_paths(&args.paths);
+    // println!("{args:#?}");
+    Ok(())
+}
+
+fn get_paths(paths: &Vec<String>) -> Result<()> {
+    for path in paths {
+        for entry in WalkDir::new(path) {
+            match entry {
+                Err(e) => eprintln!("e"),
+                Ok(entry) => println!("{}", entry.path().display()),
+            }
+        }
+    }
     Ok(())
 }
 
