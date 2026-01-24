@@ -1,11 +1,19 @@
 use anyhow::Result;
 use clap::builder::PossibleValue;
-use clap::{Parser, ValueEnum};
+use clap::{ArgAction, Parser, ValueEnum};
 use regex::Regex;
 
 fn main() {
-    let mut args = Args::parse();
+    let args = Args::parse();
+    if let Err(err) = run(args) {
+        eprintln!("{err}");
+        std::process::exit(1);
+    };
+}
+
+fn run(args: Args) -> Result<()> {
     println!("{args:#?}");
+    Ok(())
 }
 
 #[derive(Parser, Debug)]
@@ -16,14 +24,20 @@ struct Args {
     paths: Vec<String>,
 
     /// Name
-    #[arg(short, long, value_name = "NAME")]
-    name: Vec<Regex>,
+    #[arg(
+        short = 'n',
+        long = "name",
+        value_name = "NAME",
+        value_parser(Regex::new),
+        action(ArgAction::Append),
+        num_args(0..)
+    )]
+    names: Vec<Regex>,
 
     // Entry type
-    #[arg(short = 't', long = "type", value_name = "TYPE")]
+    #[arg(short = 't', long = "type", value_name = "TYPE", action(ArgAction::Append), num_args(0..))]
     entry_types: Vec<EntryType>,
 }
-
 #[derive(Debug, Eq, PartialEq, Clone)]
 enum EntryType {
     Dir,
