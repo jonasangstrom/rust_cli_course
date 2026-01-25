@@ -1,8 +1,9 @@
+use anyhow;
 use anyhow::Result;
 use clap::builder::PossibleValue;
 use clap::{ArgAction, Parser, ValueEnum};
 use regex::Regex;
-use walkdir::WalkDir;
+use walkdir::{DirEntry, WalkDir};
 
 fn main() {
     let args = Args::parse();
@@ -13,21 +14,36 @@ fn main() {
 }
 
 fn run(args: Args) -> Result<()> {
-    get_paths(&args.paths);
+    get_paths(&args.paths, &args.entry_types)?;
     // println!("{args:#?}");
     Ok(())
 }
 
-fn get_paths(paths: &Vec<String>) -> Result<()> {
+fn get_paths(paths: &Vec<String>, entry_types: &Vec<EntryType>) -> Result<()> {
+    let mut ok: Result<()> = Ok(());
     for path in paths {
-        for entry in WalkDir::new(path) {
-            match entry {
-                Err(e) => eprintln!("e"),
-                Ok(entry) => println!("{}", entry.path().display()),
+        for possible_entry in WalkDir::new(path) {
+            match possible_entry {
+                Ok(entry) => print_path(entry, &entry_types),
+                Err(err) => {
+                    ok = Err(anyhow::anyhow!(err));
+                }
             }
         }
     }
-    Ok(())
+    ok
+}
+
+fn print_path(entry: DirEntry, entry_types: &Vec<EntryType>) {
+    let file_type = entry.file_type();
+    let print_all = entry_types.len() == 0;
+    if file_type.is_file() && (entry_types.contains(&EntryType::File) || print_all) {
+        println!("{}", entry.path().display());
+    } else if file_type.is_dir() && (entry_types.contains(&EntryType::Dir) || print_all) {
+        println!("{}", entry.path().display());
+    } else if file_type.is_symlink() && (entry_types.contains(&EntryType::Link) || print_all) {
+        println!("{}", entry.path().display());
+    }
 }
 
 #[derive(Parser, Debug)]
