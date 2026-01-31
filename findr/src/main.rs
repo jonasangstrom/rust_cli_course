@@ -3,6 +3,7 @@ use anyhow::Result;
 use clap::builder::PossibleValue;
 use clap::{ArgAction, Parser, ValueEnum};
 use regex::Regex;
+use std::fs;
 use walkdir::{DirEntry, WalkDir};
 
 fn main() {
@@ -22,10 +23,20 @@ fn run(args: Args) -> Result<()> {
 fn get_paths(paths: &Vec<String>, entry_types: &Vec<EntryType>, names: &Vec<Regex>) -> Result<()> {
     let mut ok: Result<()> = Ok(());
     for path in paths {
+        match fs::exists(path) {
+            Err(err) => ok = Err(anyhow::anyhow!(err)),
+            Ok(false) => {
+                ok = Err(anyhow::anyhow!(format!(
+                    "find: ‘{path}’: No such file or directory")));
+                
+            }
+
+            Ok(true) => {}
+        };
         for possible_entry in WalkDir::new(path) {
             match possible_entry {
                 Ok(entry) => print_path(entry, &entry_types, &names),
-                Err(err) => {} //    ok = Err(anyhow::anyhow!(err));
+                Err(err) => eprintln!("{err}"),
             }
         }
     }

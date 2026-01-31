@@ -24,11 +24,11 @@ fn gen_bad_file() -> String {
 #[test]
 fn skips_bad_dir() -> Result<()> {
     let bad = gen_bad_file();
-    let expected = format!("{}: .* [(]os error [23][)]", &bad);
+    let expected = format!("‘{}’: No such file or directory", &bad);
     cargo::cargo_bin_cmd!("findr")
         .arg(&bad)
         .assert()
-        .success()
+        .failure()
         .stderr(predicate::str::is_match(expected)?);
     Ok(())
 }
