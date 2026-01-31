@@ -14,27 +14,28 @@ fn main() {
 }
 
 fn run(args: Args) -> Result<()> {
-    get_paths(&args.paths, &args.entry_types)?;
+    get_paths(&args.paths, &args.entry_types, &args.names)?;
     // println!("{args:#?}");
     Ok(())
 }
 
-fn get_paths(paths: &Vec<String>, entry_types: &Vec<EntryType>) -> Result<()> {
+fn get_paths(paths: &Vec<String>, entry_types: &Vec<EntryType>, names: &Vec<Regex>) -> Result<()> {
     let mut ok: Result<()> = Ok(());
     for path in paths {
         for possible_entry in WalkDir::new(path) {
             match possible_entry {
-                Ok(entry) => print_path(entry, &entry_types),
-                Err(err) => {
-                    ok = Err(anyhow::anyhow!(err));
-                }
+                Ok(entry) => print_path(entry, &entry_types, &names),
+                Err(err) => {} //    ok = Err(anyhow::anyhow!(err));
             }
         }
     }
     ok
 }
 
-fn print_path(entry: DirEntry, entry_types: &Vec<EntryType>) {
+fn print_path(entry: DirEntry, entry_types: &Vec<EntryType>, names: &Vec<Regex>) {
+    if !(is_match(&entry, &names)) {
+        return;
+    }
     let file_type = entry.file_type();
     let print_all = entry_types.len() == 0;
     if file_type.is_file() && (entry_types.contains(&EntryType::File) || print_all) {
@@ -44,6 +45,19 @@ fn print_path(entry: DirEntry, entry_types: &Vec<EntryType>) {
     } else if file_type.is_symlink() && (entry_types.contains(&EntryType::Link) || print_all) {
         println!("{}", entry.path().display());
     }
+}
+
+fn is_match(entry: &DirEntry, names: &Vec<Regex>) -> bool {
+    if names.len() == 0 {
+        return true;
+    }
+    for name in names {
+        let is_match = name.is_match(&entry.file_name().to_string_lossy());
+        if is_match {
+            return true;
+        }
+    }
+    false
 }
 
 #[derive(Parser, Debug)]
