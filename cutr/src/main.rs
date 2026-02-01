@@ -1,7 +1,18 @@
+use anyhow::{Result, bail};
 use clap::Parser;
 
 fn main() {
-    println!("Hello, world!");
+    let mut args = Args::parse();
+    if let Err(err) = run(args) {
+        eprintln!("{err}");
+        std::process::exit(1);
+    }
+}
+
+fn run(args: Args) -> Result<()> {
+    let delimiter = create_delimiter(&args.delimiter)?;
+    println!("{args:?}");
+    Ok(())
 }
 
 #[derive(Parser, Debug)]
@@ -30,4 +41,12 @@ struct ArgsExtract {
     ///Selected chars
     #[arg(short, long, value_name = "CHARS")]
     chars: Option<String>,
+}
+
+fn create_delimiter(string_delimiter: &String) -> Result<u8> {
+    let bytes_delimiter = string_delimiter.as_bytes();
+    match bytes_delimiter.len() {
+        1 => Ok(*bytes_delimiter.first().unwrap()),
+        _ => bail!(r#"--delim "{string_delimiter}" must be a single byte"#),
+    }
 }
