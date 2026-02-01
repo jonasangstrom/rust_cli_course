@@ -10,7 +10,7 @@ fn main() {
 }
 
 fn run(args: Args) -> Result<()> {
-    let delimiter = create_delimiter(&args.delimiter)?;
+    let delimiter = parse_delimiter(&args.delimiter)?;
     println!("{args:?}");
     Ok(())
 }
@@ -43,7 +43,7 @@ struct ArgsExtract {
     chars: Option<String>,
 }
 
-fn create_delimiter(string_delimiter: &String) -> Result<u8> {
+fn parse_delimiter(string_delimiter: &String) -> Result<u8> {
     let bytes_delimiter = string_delimiter.as_bytes();
     match bytes_delimiter.len() {
         1 => Ok(*bytes_delimiter.first().unwrap()),
