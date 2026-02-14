@@ -24,7 +24,7 @@ fn run(args: Args) -> Result<()> {
         read_single_file(filename, &delimiter, &position_list)?;
     }
 
-    println!("{args:?}");
+    //println!("{args:?}");
     Ok(())
 }
 
@@ -34,6 +34,60 @@ fn read_single_file(
     position_list: &Option<PositionList>,
 ) -> Result<()> {
     let buffer = open(filename)?;
+    print_buffer_to_stout_lines(buffer, delimiter, position_list)?;
+    Ok(())
+}
+
+fn print_buffer_to_stout_lines(
+    mut file: Box<dyn BufRead>,
+    delimiter: &u8,
+    position_list: &Option<PositionList>,
+) -> Result<()> {
+    let mut line = String::new();
+
+    loop {
+        let bytes = file.read_line(&mut line)?;
+        if bytes == 0 {
+            break;
+        }
+        print_line_to_stdout(&line, delimiter, position_list)?;
+        line.clear();
+    }
+    Ok(())
+}
+
+fn print_line_to_stdout(
+    line: &String,
+    delimiter: &u8,
+    possible_position_list: &Option<PositionList>,
+) -> Result<()> {
+    let char_delim = *delimiter as char;
+    let parts = line.split(char_delim);
+    let vec_part: Vec<&str> = parts.clone().collect();
+    if let Some(position_list) = possible_position_list {
+        let mut list_index: usize = 0;
+        let list_length = position_list.len();
+        for range in position_list {
+            list_index += 1;
+            let range_length = range.len();
+            let mut range_index: usize = 0;
+            for index in range.clone().into_iter() {
+                range_index += 1;
+                let part = vec_part[index];
+                if let Some(stripped_part) = part.strip_suffix("\n") {
+                    print!("{stripped_part}")
+                } else {
+                    print!("{part}")
+                };
+                if list_index != list_length {
+                    print!("{char_delim}");
+                } else if range_index != range_length {
+                    print!("{char_delim}");
+                }
+            }
+        }
+    }
+    println!("");
     Ok(())
 }
 
