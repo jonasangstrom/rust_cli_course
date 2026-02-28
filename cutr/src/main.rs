@@ -1,5 +1,9 @@
+mod position_list;
+mod print_line;
 use anyhow::{Result, bail};
 use clap::Parser;
+use position_list::{Extract, PositionList};
+use print_line::print_line_to_stdout_fields;
 use std::fs::File;
 use std::io::{BufRead, BufReader, stdin};
 use std::{num::NonZeroUsize, ops::Range};
@@ -14,34 +18,38 @@ fn main() {
 
 fn run(args: Args) -> Result<()> {
     let delimiter = parse_delimiter(&args.delimiter)?;
-    let fields = &args.extract.fields;
-    let position_list = match fields {
-        Some(range) => Some(parse_pos(&range)?),
-        None => None,
-    };
+    let possible_fields = &args.extract.fields;
+    let possible_bytes = &args.extract.bytes;
+    let possible_chars = &args.extract.chars;
 
-    for filename in &args.files {
-        read_single_file(filename, &delimiter, &position_list)?;
+    let extract: Extract;
+    if let Some(fields) = possible_fields {
+        extract = Extract::Fields(parse_pos(&fields)?);
+    } else if let Some(bytes) = possible_bytes {
+        extract = Extract::Bytes(parse_pos(&bytes)?);
+    } else if let Some(chars) = possible_chars {
+        extract = Extract::Chars(parse_pos(&chars)?);
+    } else {
+        bail!("No positions given, should not happen!")
     }
 
-    //println!("{args:?}");
+    for filename in &args.files {
+        read_single_file(filename, &delimiter, &extract)?;
+    }
+
     Ok(())
 }
 
-fn read_single_file(
-    filename: &String,
-    delimiter: &u8,
-    position_list: &Option<PositionList>,
-) -> Result<()> {
+fn read_single_file(filename: &String, delimiter: &u8, extract: &Extract) -> Result<()> {
     let buffer = open(filename)?;
-    print_buffer_to_stout_lines(buffer, delimiter, position_list)?;
+    print_buffer_to_stout_lines(buffer, delimiter, extract)?;
     Ok(())
 }
 
 fn print_buffer_to_stout_lines(
     mut file: Box<dyn BufRead>,
     delimiter: &u8,
-    position_list: &Option<PositionList>,
+    extract: &Extract,
 ) -> Result<()> {
     let mut line = String::new();
 
@@ -50,44 +58,16 @@ fn print_buffer_to_stout_lines(
         if bytes == 0 {
             break;
         }
-        print_line_to_stdout(&line, delimiter, position_list)?;
+        match extract {
+            Extract::Fields(position_list) => {
+                print_line_to_stdout_fields(&line, delimiter, &position_list)?
+            }
+            Extract::Bytes(position_list) => bail!("not implemented"),
+            Extract::Chars(position_list) => bail!("not implemented"),
+        }
+
         line.clear();
     }
-    Ok(())
-}
-
-fn print_line_to_stdout(
-    line: &String,
-    delimiter: &u8,
-    possible_position_list: &Option<PositionList>,
-) -> Result<()> {
-    let char_delim = *delimiter as char;
-    let parts = line.split(char_delim);
-    let vec_part: Vec<&str> = parts.clone().collect();
-    if let Some(position_list) = possible_position_list {
-        let mut list_index: usize = 0;
-        let list_length = position_list.len();
-        for range in position_list {
-            list_index += 1;
-            let range_length = range.len();
-            let mut range_index: usize = 0;
-            for index in range.clone().into_iter() {
-                range_index += 1;
-                let part = vec_part[index];
-                if let Some(stripped_part) = part.strip_suffix("\n") {
-                    print!("{stripped_part}")
-                } else {
-                    print!("{part}")
-                };
-                if list_index != list_length {
-                    print!("{char_delim}");
-                } else if range_index != range_length {
-                    print!("{char_delim}");
-                }
-            }
-        }
-    }
-    println!("");
     Ok(())
 }
 
@@ -132,15 +112,6 @@ fn parse_delimiter(string_delimiter: &String) -> Result<u8> {
         1 => Ok(*bytes_delimiter.first().unwrap()),
         _ => bail!(r#"--delim "{string_delimiter}" must be a single byte"#),
     }
-}
-
-type PositionList = Vec<Range<usize>>;
-
-#[derive(Debug)]
-pub enum Extract {
-    Fields(PositionList),
-    Bytes(PositionList),
-    Chars(PositionList),
 }
 
 fn parse_pos(range: &String) -> Result<PositionList> {
