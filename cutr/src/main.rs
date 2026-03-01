@@ -3,7 +3,9 @@ mod print_line;
 use anyhow::{Result, bail};
 use clap::Parser;
 use position_list::{Extract, PositionList};
-use print_line::print_line_to_stdout_fields;
+use print_line::{
+    print_line_to_stdout_bytes, print_line_to_stdout_chars, print_line_to_stdout_fields,
+};
 use std::fs::File;
 use std::io::{BufRead, BufReader, stdin};
 use std::{num::NonZeroUsize, ops::Range};
@@ -18,20 +20,8 @@ fn main() {
 
 fn run(args: Args) -> Result<()> {
     let delimiter = parse_delimiter(&args.delimiter)?;
-    let possible_fields = &args.extract.fields;
-    let possible_bytes = &args.extract.bytes;
-    let possible_chars = &args.extract.chars;
 
-    let extract: Extract;
-    if let Some(fields) = possible_fields {
-        extract = Extract::Fields(parse_pos(&fields)?);
-    } else if let Some(bytes) = possible_bytes {
-        extract = Extract::Bytes(parse_pos(&bytes)?);
-    } else if let Some(chars) = possible_chars {
-        extract = Extract::Chars(parse_pos(&chars)?);
-    } else {
-        bail!("No positions given, should not happen!")
-    }
+    let extract = extract_positions(&args.extract)?;
 
     for filename in &args.files {
         read_single_file(filename, &delimiter, &extract)?;
@@ -44,6 +34,24 @@ fn read_single_file(filename: &String, delimiter: &u8, extract: &Extract) -> Res
     let buffer = open(filename)?;
     print_buffer_to_stout_lines(buffer, delimiter, extract)?;
     Ok(())
+}
+
+fn extract_positions(args_extract: &ArgsExtract) -> Result<Extract> {
+    let possible_fields = &args_extract.fields;
+    let possible_bytes = &args_extract.bytes;
+    let possible_chars = &args_extract.chars;
+
+    let extract: Extract;
+    if let Some(fields) = possible_fields {
+        extract = Extract::Fields(parse_pos(&fields)?);
+    } else if let Some(bytes) = possible_bytes {
+        extract = Extract::Bytes(parse_pos(&bytes)?);
+    } else if let Some(chars) = possible_chars {
+        extract = Extract::Chars(parse_pos(&chars)?);
+    } else {
+        bail!("No positions given, should not happen!")
+    }
+    Ok(extract)
 }
 
 fn print_buffer_to_stout_lines(
@@ -62,8 +70,12 @@ fn print_buffer_to_stout_lines(
             Extract::Fields(position_list) => {
                 print_line_to_stdout_fields(&line, delimiter, &position_list)?
             }
-            Extract::Bytes(position_list) => bail!("not implemented"),
-            Extract::Chars(position_list) => bail!("not implemented"),
+            Extract::Bytes(position_list) => {
+                print_line_to_stdout_bytes(&line, delimiter, &position_list)?
+            }
+            Extract::Chars(position_list) => {
+                print_line_to_stdout_chars(&line, delimiter, &position_list)?
+            }
         }
 
         line.clear();

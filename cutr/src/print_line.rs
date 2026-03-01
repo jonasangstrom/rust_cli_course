@@ -1,5 +1,5 @@
 use crate::position_list::PositionList;
-use anyhow::Result;
+use anyhow::{Result, bail};
 
 pub fn print_line_to_stdout_fields(
     line: &String,
@@ -32,4 +32,40 @@ pub fn print_line_to_stdout_fields(
     }
     println!("");
     Ok(())
+}
+
+pub fn print_line_to_stdout_chars(
+    line: &String,
+    _delimiter: &u8,
+    position_list: &PositionList,
+) -> Result<()> {
+    let char_vec: Vec<char> = line.chars().collect();
+    let line_size = char_vec.len();
+    for og_range in position_list {
+        let start = og_range.start;
+        if start > line_size - 1 {
+            continue;
+        }
+        let end: usize;
+        if og_range.end > line_size {
+            end = line_size;
+        } else {
+            end = og_range.end;
+        }
+
+        let slice = &char_vec[start..end];
+        for char in slice {
+            print!("{char}");
+        }
+    }
+    println!("");
+    Ok(())
+}
+
+pub fn print_line_to_stdout_bytes(
+    _line: &String,
+    _delimiter: &u8,
+    _position_list: &PositionList,
+) -> Result<()> {
+    bail!("Not implemented!")
 }
