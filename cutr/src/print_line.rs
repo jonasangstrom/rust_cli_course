@@ -63,9 +63,28 @@ pub fn print_line_to_stdout_chars(
 }
 
 pub fn print_line_to_stdout_bytes(
-    _line: &String,
+    line: &String,
     _delimiter: &u8,
-    _position_list: &PositionList,
+    position_list: &PositionList,
 ) -> Result<()> {
-    bail!("Not implemented!")
+    let bytes_vec = line.clone().into_bytes();
+    let line_size = bytes_vec.len();
+    for og_range in position_list {
+        let start = og_range.start;
+        if start > line_size - 1 {
+            continue;
+        }
+        let end: usize;
+        if og_range.end > line_size {
+            end = line_size;
+        } else {
+            end = og_range.end;
+        }
+
+        let slice = &bytes_vec[start..end];
+        let string = String::from_utf8_lossy(slice);
+        print!("{string}");
+    }
+    println!("");
+    Ok(())
 }

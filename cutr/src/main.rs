@@ -32,7 +32,7 @@ fn run(args: Args) -> Result<()> {
 
 fn read_single_file(filename: &String, delimiter: &u8, extract: &Extract) -> Result<()> {
     let buffer = open(filename)?;
-    print_buffer_to_stout_lines(buffer, delimiter, extract)?;
+    print_buffer_to_stout(buffer, delimiter, extract)?;
     Ok(())
 }
 
@@ -54,7 +54,13 @@ fn extract_positions(args_extract: &ArgsExtract) -> Result<Extract> {
     Ok(extract)
 }
 
-fn print_buffer_to_stout_lines(
+fn print_buffer_to_stout(file: Box<dyn BufRead>, delimiter: &u8, extract: &Extract) -> Result<()> {
+    print_buffer_to_stout_string(file, delimiter, extract)?;
+
+    Ok(())
+}
+
+fn print_buffer_to_stout_string(
     mut file: Box<dyn BufRead>,
     delimiter: &u8,
     extract: &Extract,
@@ -70,11 +76,12 @@ fn print_buffer_to_stout_lines(
             Extract::Fields(position_list) => {
                 print_line_to_stdout_fields(&line, delimiter, &position_list)?
             }
-            Extract::Bytes(position_list) => {
-                print_line_to_stdout_bytes(&line, delimiter, &position_list)?
-            }
             Extract::Chars(position_list) => {
                 print_line_to_stdout_chars(&line, delimiter, &position_list)?
+            }
+
+            Extract::Bytes(position_list) => {
+                print_line_to_stdout_bytes(&line, delimiter, &position_list)?
             }
         }
 
