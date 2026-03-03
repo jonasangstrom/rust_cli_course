@@ -31,7 +31,10 @@ fn run(args: Args) -> Result<()> {
 }
 
 fn read_single_file(filename: &String, delimiter: &u8, extract: &Extract) -> Result<()> {
-    let buffer = open(filename)?;
+    let buffer = match open(filename) {
+        Ok(buffer) => buffer,
+        Err(err) => bail!("{filename}: {err}"),
+    };
     print_buffer_to_stout(buffer, delimiter, extract)?;
     Ok(())
 }

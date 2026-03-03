@@ -36,7 +36,7 @@ fn skips_bad_file() -> Result<()> {
     cargo::cargo_bin_cmd!("cutr")
         .args(["-f", "1", CSV, &bad, TSV])
         .assert()
-        .success()
+        .failure()
         .stderr(predicate::str::is_match(expected)?);
     Ok(())
 }
